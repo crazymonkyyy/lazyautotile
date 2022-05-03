@@ -1,0 +1,8 @@
+int toolx=GetMouseX/(scale*width);
+int tooly=GetMouseY/(hight*scale);
+scope(exit) DrawRectangleLinesEx(Rectangle(
+	toolx*(scale*width),
+	tooly*(scale*hight),
+	width*scale,
+	hight*scale),
+	1*scale,Colors.WHITE);

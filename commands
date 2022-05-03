@@ -1,0 +1,2 @@
+./biuld.d source/app.d true 16 16 25 25 tile.png foo bar tilekey tilelock
+./biuld.d source/editkey.d 16 16 2 16 16 tile.png tilekey tilelock 
