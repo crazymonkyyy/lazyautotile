@@ -4,6 +4,7 @@ import raylib;
 	import std.conv;
 	import std.string;
 import format;
+import safearray;
 
 alias block=int[3][3];
 alias tile=int;
@@ -21,16 +22,18 @@ tile lookup(block b){
 	if(b in lookup_){ return lookup_[b][0];}
 	return b[1][1];
 }
-int[][] key;
-int[][] lock;
-int[][] input;
-int[][] output;
+array2d!int key;
+array2d!int lock;
+array2d!int input;
+array2d!int output;
 int countx;
 int county;
 string inputfile;
 string outputfile;
 string lockfile;
 string keyfile;
+int offsetx=100;
+int offsety=100;
 void loadkeylock(){
 	read(key,keyfile);
 	read(lock,lockfile);
@@ -114,14 +117,21 @@ void main(string[] s){
 		scope(exit) EndDrawing();
 		ClearBackground(Colors.BLACK);
 		
-		mixin(import("tooltip.mix"));
+		int toolx=(GetMouseX+offsetx)/(scale*width);
+		int tooly=(GetMouseY+offsety)/(hight*scale);
+		scope(exit) DrawRectangleLinesEx(Rectangle(
+			toolx*(scale*width)-offsetx,
+			tooly*(scale*hight)-offsety,
+			width*scale,
+			hight*scale),
+		1*scale,Colors.WHITE);
 		foreach(x;0..countx){
 		foreach(y;0..county){
 			auto t=output[x][y];
 			if(x==toolx&&y==tooly){t=tool;}
 			DrawTextureTiled(sheet,
 				Rectangle((t%row)*width,(t/row)*hight,width,hight),
-				Rectangle(x*scale*width,y*scale*hight,width*scale,hight*scale),
+				Rectangle(x*scale*width-offsetx,y*scale*hight-offsety,width*scale,hight*scale),
 				Vector2(0,0),0,scale,Colors.WHITE);
 		}}
 		if(IsMouseButtonPressed(1)){
