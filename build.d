@@ -4,6 +4,7 @@ enum localfolders=[
 	"mylibs",
 	"raylib",
 	"source",
+	"blob"
 ];
 enum mixfolders=[//consider not making a distinction
 	"source",

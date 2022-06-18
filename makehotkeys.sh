@@ -1,0 +1,1 @@
+./adddata $1 $(./selector $1) $(./selector $1) $(./selector $1) $(./selector $1) $(./selector $1) $(./selector $1) $(./selector $1) $(./selector $1) $(./selector $1) $(./selector $1)

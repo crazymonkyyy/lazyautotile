@@ -1,4 +1,4 @@
-enum bool verbose=true;
+enum bool verbose=false;
 enum bool safe=true;
 struct array2d(T,int WIDTH=-1,int HEIGHT=-1){
 	static if(WIDTH<1){

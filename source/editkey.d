@@ -1,73 +1,98 @@
 import raylib;
 //import basic;
+	import std.stdio;
 	import std.conv;
 	import std.string;
 import format;
+import safearray;
+import blob;
+import monkyyykeys;
+
+
+string tilemap;
+string file;
+array2d!int key;
+array2d!int lock;
+enum windowwidth=300;
+enum windowheight=300;
+enum scale=.25;//todo make a more robust solution
+
 void main(string[] s){
-	int width=s[1].to!int;
-	int hight=s[2].to!int;
-	int scale=s[3].to!int;
-	int countx=s[4].to!int;
-	int county=s[5].to!int;
-	Image sheet_=LoadImage(s[6].toStringz);
-	int row=sheet_.width/width;
-	InitWindow(width*countx*scale, hight*county*scale, "Hello, Raylib-D!");
-	Texture2D sheet=LoadTextureFromImage(sheet_);
-	int[][] key;
-	int[][] lock;
-	read(key,s[7]);
-	setsize(key,countx,county);
-	read(lock,s[8]);
-	setsize(lock,countx,county);
-	SetWindowPosition(1800,0);
-	SetTargetFPS(60);
-	int tool=50;
-	bool mode=true;
-	int trans=128;
+	file=s[1];
+	readkey(key,lock,file,tilemap);
+	int tilesx=key.width;
+	int tilesy=key.height;
+	int transperency=128;
+	bool active=true;
+	int tooltip;
+	mixin(import("drawing.mix"));
 	while (!WindowShouldClose()){
 		BeginDrawing();
 		scope(exit) EndDrawing();
 		ClearBackground(Colors.BLACK);
 		mixin(import("tooltip.mix"));
-		foreach(x;0..countx){
-		foreach(y;0..county){
-			auto t=key[x][y];
-			if(!mode){if(x==toolx&&y==tooly){t=tool;}}
-			DrawTextureTiled(sheet,
-				Rectangle((t%row)*width,(t/row)*hight,width,hight),
-				Rectangle(x*scale*width,y*scale*hight,width*scale,hight*scale),
-				Vector2(0,0),0,scale,Colors.WHITE);
-			if(mode){
-				auto l=lock[x][y];
-					if(x==toolx&&y==tooly){l=tool;}
-					DrawTextureTiled(sheet,
-						Rectangle((l%row)*width,(l/row)*hight,width,hight),
-						Rectangle(x*scale*width,y*scale*hight,width*scale,hight*scale),
-					Vector2(0,0),0,scale,Color(255,255,255,cast(ubyte)trans%256));
+		with(button){
+			if( ! ctrl){drawaligned(lock);}
+			if( ! alt && ! ctrl){
+				drawalignedtrans(key,cast(ubyte)transperency);
 			}
-		}}
-		if(IsMouseButtonPressed(1)){
-			import std.process;
-			tool=("./selector "~s[1]~" "~s[2]~" "~s[6])
-				.executeShell.output[0..$-1].to!int;
-		}
-		if(IsMouseButtonDown(0)){
-			if(mode){lock[toolx][tooly]=tool;}
-			else{key[toolx][tooly]=tool;}
-		}
-		if(IsMouseButtonPressed(2)){
-			mode = ! mode;
-		}
-		static int timer;
-		if(timer==0){
-			timer=60*60;
-			write(key,s[7]);
-			write(lock,s[8]);
-			import basic;
-			"autosave".writeln;
-		}
-		else {timer--;}
-		trans+=GetMouseWheelMove*16;
-	}
-	CloseWindow();
+			if(alt){active=false;}
+			if(ctrl){
+				active=true;
+				drawaligned(key);
+			}
+			if(shift+alt+f1){
+				import std.process;
+				int temp=("./selector "~tilemap).executeShell.output[0..$-1].to!int;
+				foreach(x_;0..key.width){
+				foreach(y_;0..key.height){
+					lock[x_,y_]=temp;
+					key[x_,y_]=temp;
+			}}}
+			if(active && mouse1 && !shift){
+				key[toolx,tooly]=tooltip;}
+			if(!active && mouse1 && !shift){
+				lock[toolx,tooly]=tooltip;}
+			if(active && mouse1 && shift){
+				foreach(x;-2..2+1){
+				foreach(y;-2..2+1){
+					key[toolx+x,tooly+y]=tooltip;
+			}}}
+			if(!active && mouse1 && shift){
+				foreach(x;-2..2+1){
+				foreach(y;-2..2+1){
+					lock[toolx+x,tooly+y]=tooltip;
+			}}}
+			if(active && mouse2.pressed){
+				tooltip=key[toolx,tooly];}
+			if(! active && mouse2.pressed){
+				tooltip=lock[toolx,tooly];}
+			if(mouse4.pressed){
+				import std.process;
+				tooltip=("./selector "~tilemap).executeShell.output[0..$-1].to!int;
+			}
+			if(mouse3.pressed){
+				active=!active;}
+			if( ! shift){
+				transperency+=GetMouseWheelMove*16;
+			} else {
+				transperency+=GetMouseWheelMove*1;
+			}
+			transperency%=ubyte.max;
+			static foreach(i;0..10){
+				mixin("if(_"~i.to!string~"){tooltip=hotkeys[i];}");
+			}
+			static int timer;
+			if(f5.pressed){timer=0;}
+			if(timer==0){
+				timer=60*60;
+				writekey(key,lock,file,tilemap);
+				"autosave".writeln;
+			} else { timer--;}
+			
+			int speed=shift?8:1;
+			offsetx+=(a.down*speed)+(d.down*-speed);
+			offsety+=(w.down*speed)+(s.down*-speed);
+	}}
+	CloseWindow;
 }

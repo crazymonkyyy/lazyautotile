@@ -40,6 +40,8 @@ struct blob{
 blob readblob(string file){
 	blob o;
 	o.file=file;
+	import std.file;
+	if(!exists(file~".blob")){ return o;}
 	auto i=File(file~".blob");
 	auto i_=i.byLineCopy;
 	assert(i_.front=="BLOB file type ^tm","file appears to not be a blob");

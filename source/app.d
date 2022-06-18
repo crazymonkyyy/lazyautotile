@@ -1,149 +1,119 @@
 import raylib;
 //import basic;
-	import std.algorithm;
+	import std.stdio;
 	import std.conv;
 	import std.string;
 import format;
 import safearray;
+import blob;
+import monkyyykeys;
 
-alias block=int[3][3];
-alias tile=int;
-alias tiles=tile[];
-
-tiles[block] lookup_;
-void addlookup(block b,tile t){
-	if(b in lookup_){
-		lookup_[b]=lookup_[b]~t;
-	} else {
-		lookup_[b]=[t];
-	}
-}
-tile lookup(block b){
-	if(b in lookup_){ return lookup_[b][0];}
-	return b[1][1];
-}
-array2d!int key;
-array2d!int lock;
+string tilemap;
+string file;
+string file2;
+string keyfile;
 array2d!int input;
 array2d!int output;
-int countx;
-int county;
-string inputfile;
-string outputfile;
-string lockfile;
-string keyfile;
-int offsetx=100;
-int offsety=100;
-void loadkeylock(){
-	read(key,keyfile);
-	read(lock,lockfile);
+array2d!int key;
+array2d!int lock;
+enum windowwidth=300;
+enum windowheight=300;
+enum scale=1;
+
+int lookupconversion(int[3][3] input){
+	import keyhandling;
+	return lookup(input);
 }
-void processlockandkey(){
-	lookup_.clear;
-	tile l(ulong x,ulong y){
-		import std;
-		return lock
-			[min($-1,max(0,x))]
-			[min($-1,max(0,y))];
-	}
-	foreach(x;0..key[0].length){
-	foreach(y;0..key.length){
-		addlookup(
-			[
-				[l(x-1,y-1),l(x+0,y-1),l(x+1,y-1),],
-				[l(x-1,y+0),l(x+0,y+0),l(x+1,y+0),],
-				[l(x-1,y+1),l(x+0,y+1),l(x+1,y+1),],
-			],key[x][y]);
+
+void updatecell(int x_,int y_){
+	int[3][3] o;
+	foreach(x;-1..1+1){
+	foreach(y;-1..1+1){
+		o[x+1][y+1]=input[x+x_,y+y_];
+	}}
+	output[x_,y_]=lookupconversion(o);
+	if(output[x_,y_]!=input[x_,y_]){import std; "yay".writeln;}
+}
+void updateallcells(){
+	foreach(x;0..input.width){
+	foreach(y;0..input.height){
+		updatecell(x,y);
 	}}
 }
-void readinputfromfile(){
-	read(input,inputfile);
-	countx=cast(int)max(input[0].length,countx);
-	county=cast(int)max(input.length,county);
-	setsize(input,countx,county);
-	setsize(output,countx,county);
-}
-void createoutput(){
-	tile l(ulong x,ulong y){
-		import std;
-		return input
-			[min($-1,max(0,x))]
-			[min($-1,max(0,y))];
-	}
-	foreach(x;0..input[0].length){
-	foreach(y;0..input.length){
-		output[x][y]=lookup([
-			[l(x-1,y-1),l(x+0,y-1),l(x+1,y-1),],
-			[l(x-1,y+0),l(x+0,y+0),l(x+1,y+0),],
-			[l(x-1,y+1),l(x+0,y+1),l(x+1,y+1),],
-		]);
-	}}
-}
-void writeinputtofile(){
-	write(input,inputfile);
-}
-void writeoutputtofile(){
-	write(output,outputfile);
+void processkey(){
+	import keyhandling;
+	readkey(key,lock,keyfile,tilemap);
+	process(key,lock);
 }
 
 void main(string[] s){
-	bool gui=s[1].to!bool;
-	int width=s[2].to!int;
-	int hight=s[3].to!int;
-	countx=s[4].to!int;
-	county=s[5].to!int;
-	Image sheet_=LoadImage(s[6].toStringz);
-	int row=sheet_.width/width;
-	inputfile=s[7];
-	outputfile=s[8];
-	keyfile=s[9];
-	lockfile=s[10];
-	int scale=2;
-	loadkeylock;
-	processlockandkey;
-	//import std.stdio; lookup_.writeln;
-	readinputfromfile;
-	createoutput;
-	writeoutputtofile;
-	
-	if(gui){
-	int tool=100;
-	InitWindow(width*countx*scale, hight*county*scale, "Hello, Raylib-D!");
-	Texture2D sheet=LoadTextureFromImage(sheet_);
-	SetWindowPosition(1800,0);
-	SetTargetFPS(60);
+	file=s[1];
+	file2=s[2];
+	readfile(input,keyfile,file);
+	readkey(key,lock,keyfile,tilemap);
+	processkey;
+	int tilesx=input.width;
+	int tilesy=input.height;
+	output.width=input.width;
+	output.height=input.height;
+	updateallcells;
+	int tooltip;
+	mixin(import("drawing.mix"));
+	//import keyhandling; printstore;
 	while (!WindowShouldClose()){
 		BeginDrawing();
 		scope(exit) EndDrawing();
 		ClearBackground(Colors.BLACK);
+		mixin(import("tooltip.mix"));
+		drawaligned(output);
 		
-		int toolx=(GetMouseX+offsetx)/(scale*width);
-		int tooly=(GetMouseY+offsety)/(hight*scale);
-		scope(exit) DrawRectangleLinesEx(Rectangle(
-			toolx*(scale*width)-offsetx,
-			tooly*(scale*hight)-offsety,
-			width*scale,
-			hight*scale),
-		1*scale,Colors.WHITE);
-		foreach(x;0..countx){
-		foreach(y;0..county){
-			auto t=output[x][y];
-			if(x==toolx&&y==tooly){t=tool;}
-			DrawTextureTiled(sheet,
-				Rectangle((t%row)*width,(t/row)*hight,width,hight),
-				Rectangle(x*scale*width-offsetx,y*scale*hight-offsety,width*scale,hight*scale),
-				Vector2(0,0),0,scale,Colors.WHITE);
-		}}
-		if(IsMouseButtonPressed(1)){
-			import std.process;
-			tool=("./selector "~s[2]~" "~s[3]~" "~s[6])
-				.executeShell.output[0..$-1].to!int;
+		import monkyyykeys;
+		with(button){
+			if(shift+alt+f1){
+				import std.process;
+				int temp=("./selector "~tilemap).executeShell.output[0..$-1].to!int;
+				foreach(x_;0..key.width){
+				foreach(y_;0..key.height){
+					input[x_,y_]=temp;
+				}}
+				updateallcells;
+			}
+			if(mouse1 && ! shift){
+				input[toolx,tooly]=tooltip;
+				foreach(x;-1..1+1){
+				foreach(y;-1..1+1){
+					updatecell(toolx+x,tooly+y);
+				}}
+			}
+			if(shift && mouse1){
+				foreach(x;-2..2+1){
+				foreach(y;-2..2+1){
+					input[toolx+x,tooly+y]=tooltip;
+				}}
+				foreach(x;-3..3+1){
+				foreach(y;-3..3+1){
+					updatecell(toolx+x,tooly+y);
+				}}
+			}
+			if(mouse2.pressed){
+				tooltip=input[toolx,tooly];
+			}
+			if(mouse3.pressed){
+				import std.process;
+				tooltip=("./selector "~tilemap).executeShell.output[0..$-1].to!int;
+			}
+			static int i;
+			if(i==0 || f5.pressed){
+				i=5*60;
+				writefile(input,keyfile,file);
+				writefile(output,keyfile,file2);
+			} else {i--;}
+			int speed=shift?8:1;//copy and pasted, factor out? to mix file
+			offsetx+=(a.down*speed)+(d.down*-speed);
+			offsety+=(w.down*speed)+(s.down*-speed);
 		}
-		if(IsMouseButtonDown(0)){
-			input[toolx][tooly]=tool;
-			createoutput;
-		}
-		DrawFPS(10,10);
+		input.height=output.height;//HACK: I kinda wondering if this just worked, .... I dont know if it did
+											//TODO: make sure that input isnt growing when edited
 	}
-	CloseWindow();
-}}
+	CloseWindow;
+}

@@ -1,40 +1,55 @@
 import std.stdio;
-void read(ref int[][] store,string file){
-	store=[];
-	foreach(s;File(file).byLine){
-		int[] o;
-		//assert(s[$-1]=='\n');
-		foreach(c;s){
-			o~=cast(int)c;
-		}
-		store~=o;
-	}
+import safearray;
+import blob;
+import basic;
+void readfile(ref array2d!int store,ref string key,string file){
+	auto a=readblob(file);
+	store.width=a.get("width").to!int;
+	store.height=a.get("height").to!int;
+	key=a.get("key");
+	store.data=a.data;
 }
-void write(ref int[][] store,string file){
-	auto o=File(file,"w");
-	foreach(list;store){
-	foreach(e;list){
-		o.write(cast(char)e);
-	}
-		o.writeln;
-	}
+void writefile(ref array2d!int store,string key,string file){
+	auto a=readblob(file);
+	a.header=[];
+	a.header~="width"~store.width.to!string;
+	a.header~="height"~store.height.to!string;
+	a.header~="key"~key;
+	a.data=store.data;
+	a.rewrite;
 }
-void setsize(ref int[][] store, int x, int y){
-	store.length=y;
-	foreach(ref e;store){
-		e.length=x;
-	}
+//void setsize(ref array2d!int store, int x, int y){
+//	store.length=y;
+//	foreach(ref e;store){
+//		e.length=x;
+//	}
+//}
+void readkey(ref array2d!int key,ref array2d!int lock, string file,ref string tilemap){
+	auto a=readblob(file);
+	//try{
+		key.width=a.get("width").to!int;
+		lock.width=a.get("width").to!int;
+		key.height=a.get("height").to!int;
+		lock.height=a.get("height").to!int;
+		tilemap=a.get("tilemap");
+		assert(a.get("depth").to!int==2);
+	//}
+	//catch(Error){}
+	key.data=a.data[0..key.width*key.height];
+	lock.data=a.data[key.width*key.height..$];
 }
-unittest{
-	int[][] a=[
-		[1,2,3],
-		[4,5,6],
+void writekey(ref array2d!int key,ref array2d!int lock,string file,ref string tilemap){
+	typeof(readblob(file)) blob;
+	blob.file=file;
+	foreach(e;key.iterate){
+		blob.data~=e;}
+	foreach(e;lock.iterate){
+		blob.data~=e;}
+	blob.header=[
+		"width"~key.width.to!string,
+		"height"~key.height.to!string,
+		"depth2",
+		"tilemap"~tilemap,
 	];
-	write(a,"unittest");
-	a=[];
-	a.writeln;
-	read(a,"unittest");
-	a.writeln;
-	setsize(a,5,5);
-	a.writeln;
+	blob.rewrite;
 }

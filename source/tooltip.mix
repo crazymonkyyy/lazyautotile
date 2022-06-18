@@ -1,8 +1,19 @@
-int toolx=GetMouseX/(scale*width);
-int tooly=GetMouseY/(hight*scale);
-scope(exit) DrawRectangleLinesEx(Rectangle(
-	toolx*(scale*width),
-	tooly*(scale*hight),
-	width*scale,
-	hight*scale),
-	1*scale,Colors.WHITE);
+int toolx=cast(int)((GetMouseX-offsetx)/(scale*tilewidth) );
+int tooly=cast(int)((GetMouseY-offsety)/(tileheight*scale));
+scope(exit) {
+if( ! button.shift){
+	DrawRectangleLinesEx(Rectangle(
+		toolx*(scale*tilewidth)+offsetx,
+		tooly*(scale*tileheight)+offsety,
+		tilewidth*scale,
+		tileheight*scale),
+		3,Colors.WHITE);
+} else {
+	DrawRectangleLinesEx(Rectangle(
+		(toolx-2)*(scale*tilewidth)+offsetx,
+		(tooly-2)*(scale*tileheight)+offsety,
+		5*tilewidth*scale,
+		5*tileheight*scale),
+		3,Colors.WHITE);
+}
+}
